@@ -1,0 +1,108 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../backend/src/generated/prisma"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+enum ERole {
+  Customer
+  Seller
+  Admin
+}
+
+model User {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  email       String    @unique
+  name        String
+  imageUrl    String
+  password    String
+  phoneNumber String
+  status      Boolean
+  role        ERole
+  Seller      Seller?
+  Customer    Customer?
+  Admin       Admin?
+}
+
+model Seller {
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  shop   Shop   @relation(fields: [shopId], references: [id])
+  shopId String @unique @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id])
+  userId String @unique @db.ObjectId
+}
+
+model Customer {
+  id            String         @id @default(auto()) @map("_id") @db.ObjectId
+  transactions  Transaction[]
+  user          User           @relation(fields: [userId], references: [id])
+  userId        String         @unique @db.ObjectId
+  shopId        String[]       @db.ObjectId
+  shop          Shop[]         @relation(fields: [shopId], references: [id])
+  notifications Notification[]
+}
+
+model Admin {
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id])
+  userId String @unique @db.ObjectId
+}
+
+model Shop {
+  id          String     @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  books       Book[]
+  seller      Seller?
+  catalogs    Catalog[]
+  observers   Customer[] @relation(fields: [observersId], references: [id])
+  observersId String[]   @db.ObjectId
+}
+
+model Book {
+  id           String        @id @default(auto()) @map("_id") @db.ObjectId
+  abstraction  String
+  fileUrl      String
+  imageUrl     String
+  genre        String[]
+  price        Float
+  transactions Transaction[]
+  shopId       String        @db.ObjectId
+  shop         Shop          @relation(fields: [shopId], references: [id])
+  catalogId    String?       @db.ObjectId
+  catalog      Catalog?      @relation(fields: [catalogId], references: [id])
+}
+
+model Catalog {
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  name   String
+  books  Book[]
+  shopId String @db.ObjectId
+  shop   Shop   @relation(fields: [shopId], references: [id])
+}
+
+model Transaction {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  bookId     String   @db.ObjectId
+  book       Book     @relation(fields: [bookId], references: [id])
+  customer   Customer @relation(fields: [customerId], references: [id])
+  customerId String   @db.ObjectId
+}
+
+model Notification {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  content    String
+  status     Boolean
+  timestamp  DateTime @default(now())
+  customer   Customer @relation(fields: [customerId], references: [id])
+  customerId String   @db.ObjectId
+}
